@@ -129,4 +129,22 @@ func TestHumaRoundtrip(t *testing.T) {
 
 	// Note the `hidden` field was not made public so it not included below!
 	assert.JSONEq(t, "["+json+","+json+"]", w.Body.String())
+
+	// Test that validation is working as expected
+	// First: exclusive minimum should fail
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num32": 0}`))
+	app.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because not > 0
+
+	// Next: inclusive minimum should pass at the boundary value
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num64": 0}`))
+	app.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code) // Works because >= 0
+
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num64": -1}`))
+	app.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because not >= 0
 }

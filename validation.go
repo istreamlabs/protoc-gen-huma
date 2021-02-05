@@ -12,21 +12,31 @@ import (
 // Validation represents Huma-supported validation rules. These follow JSON
 // Schema closely.
 type Validation struct {
-	ReadOnly         bool
-	Deprecated       bool
-	IsRequired       bool
-	Minimum          float64
-	ExclusiveMinimum float64
-	Maximum          float64
-	ExclusiveMaximum float64
-	MinLength        int64
-	MaxLengh         int64
-	Pattern          string
-	Format           string
-	MinItems         int64
-	MaxItems         int64
-	Unique           bool
-	EnumValues       []string
+	ReadOnly   bool
+	Deprecated bool
+	IsRequired bool
+
+	// The template system can't determine the difference between nil and 0, so
+	// we use a boolean to determine if the field was set below.
+	Minimum             float64
+	HasMinimum          bool
+	ExclusiveMinimum    float64
+	HasExclusiveMinimum bool
+	Maximum             float64
+	HasMaximum          bool
+	ExclusiveMaximum    float64
+	HasExclusiveMaximum bool
+
+	// Note: min/max length and items don't make sense when set to 0, so no need
+	// for the `HasXXX` booleans like above.
+	MinLength  int64
+	MaxLengh   int64
+	Pattern    string
+	Format     string
+	MinItems   int64
+	MaxItems   int64
+	Unique     bool
+	EnumValues []string
 }
 
 // convertValidation from protoc-gen-validate rules to Huma rules.
@@ -62,91 +72,115 @@ func convertValidation(protoField *descriptorpb.FieldDescriptorProto, f *Field) 
 		// TODO: add more types?
 		if i := rules.GetInt32(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 
 		if i := rules.GetInt64(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 
 		if i := rules.GetUint32(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 
 		if i := rules.GetUint64(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 
 		if i := rules.GetFloat(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 
 		if i := rules.GetDouble(); i != nil {
 			if i.Gte != nil {
+				f.Validation.HasMinimum = true
 				f.Validation.Minimum = float64(*i.Gte)
 			}
 			if i.Gt != nil {
+				f.Validation.HasExclusiveMinimum = true
 				f.Validation.ExclusiveMinimum = float64(*i.Gt)
 			}
 			if i.Lte != nil {
-				f.Validation.Minimum = float64(*i.Lte)
+				f.Validation.HasMaximum = true
+				f.Validation.Maximum = float64(*i.Lte)
 			}
 			if i.Lt != nil {
-				f.Validation.ExclusiveMaximum = float64(*i.Gt)
+				f.Validation.HasExclusiveMaximum = true
+				f.Validation.ExclusiveMaximum = float64(*i.Lt)
 			}
 		}
 

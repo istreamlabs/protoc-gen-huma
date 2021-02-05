@@ -43,10 +43,10 @@ import (
 {% macro tags(field) -%}
 	json:"{{ field.JSONName }}{% if not field.Validation.IsRequired %},omitempty{% endif %}"
 	{%- if field.Enum %} enum:"{% for v in field.Validation.EnumValues %}{{ v }}{% if not forloop.Last %},{% endif %}{% endfor %}"{% endif -%}
-	{%- if field.Validation.Minimum %} minimum:"{{ field.Validation.Minimum|floatformat }}"{% endif -%}
-	{%- if field.Validation.ExclusiveMinimum %} exclusiveMinimum:"{{ field.Validation.ExclusiveMinimum|floatformat }}"{% endif -%}
-	{%- if field.Validation.Maximum %} maximum:"{{ field.Validation.Maximum|floatformat }}"{% endif -%}
-	{%- if field.Validation.ExclusiveMaximum %} exclusiveMaximum:"{{ field.Validation.ExclusiveMaximum|floatformat }}"{% endif -%}
+	{%- if field.Validation.HasMinimum %} minimum:"{{ field.Validation.Minimum|floatformat }}"{% endif -%}
+	{%- if field.Validation.HasExclusiveMinimum %} exclusiveMinimum:"{{ field.Validation.ExclusiveMinimum|floatformat }}"{% endif -%}
+	{%- if field.Validation.HasMaximum %} maximum:"{{ field.Validation.Maximum|floatformat }}"{% endif -%}
+	{%- if field.Validation.HasExclusiveMaximum %} exclusiveMaximum:"{{ field.Validation.ExclusiveMaximum|floatformat }}"{% endif -%}
 	{%- if field.Validation.MinLength %} minLength:"{{ field.Validation.MinLength }}"{% endif -%}
 	{%- if field.Validation.MaxLength %} maxLength:"{{ field.Validation.MaxLength }}"{% endif -%}
 	{%- if field.Validation.Pattern %} pattern:"{{ field.Validation.Pattern }}"{% endif -%}
