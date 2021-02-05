@@ -1,0 +1,15 @@
+syntax = "proto3";
+package huma;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/istreamlabs/protoc-gen-huma/annotation";
+
+extend google.protobuf.FieldOptions {
+  // Public marks that a field should be included in the generated Huma model.
+  optional bool public = 84841;
+
+  // ReadOnly marks that a field is set by the server. The client can only
+  // read its value, e.g. resource creation date.
+  optional bool readOnly = 84842;
+}
