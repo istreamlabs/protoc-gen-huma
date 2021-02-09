@@ -82,6 +82,9 @@ type Message struct {
 	// Fields is a slice of field definitions in the message.
 	Fields []Field
 
+	// OneOfs is a map of one-of names to fields.
+	OneOfs map[string][]Field
+
 	// Comment is the leading comment for the message, if any.
 	Comment string
 }
@@ -99,7 +102,7 @@ type File struct {
 
 	// Imports is a list of Go imports for the file, based on which types and
 	// features are used.
-	Imports []string
+	Imports map[string]bool
 
 	// KnownMap is used to keep track of which enums and messages have been seen
 	// before so we don't get duplicate definitions.

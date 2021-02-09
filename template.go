@@ -70,6 +70,28 @@ type {{ msg.Name }} struct {
 	{% endfor %}
 }
 
+{% if msg.OneOfs %}
+func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
+	{%- for name, fields in msg.OneOfs %}
+		{
+			seen := []string{}
+			{%- for field in fields %}
+				if !reflect.ValueOf(m.{{ field.Name }}).IsZero() {
+					seen = append(seen, "{{ field.JSONName }}")
+				}
+			{%- endfor %}
+			if len(seen) > 1 {
+				ctx.AddError(&huma.ErrorDetail{
+					Message:  "Only one of [{% for field in fields %}'{{ field.JSONName }}', {% endfor %}] allowed in 'Message'",
+					Location: seen[0],
+					Value:    strings.Join(seen, ", "),
+				})
+			}
+		}
+	{%- endfor %}
+}
+{% endif %}
+
 {% macro fieldfromproto(proto, field) -%}
 	{% if field.GoType == "*time.Time" -%}
 		if {{ proto }}.{{ field.ProtoGoName }} != nil {
@@ -119,16 +141,20 @@ type {{ msg.Name }} struct {
 // FromProto converts a proto message to the Huma representation.
 func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoName }}) *{{ msg.Name }} {
 	{% for field in msg.Fields -%}
-		{% if field.OneOf -%}
-			{
-				if oneof, ok := proto.{{ field.OneOf }}.(*{{ file.PackageName }}.{{ msg.ProtoGoName }}_{{ field.ProtoGoName }}); ok {
-					{{ fieldfromproto("oneof", field) }}
-				}
-			}
-		{% else -%}
+		{% if not field.OneOf -%}
 			{{ fieldfromproto("proto", field) }}
 		{% endif %}
 	{%- endfor %}
+
+	{% for name, fields in msg.OneOfs %}
+		switch oneof := proto.{{ name }}.(type) {
+			{% for field in fields %}
+				case *{{ file.PackageName }}.{{ msg.ProtoGoName }}_{{ field.ProtoGoName }}:
+					{{ fieldfromproto("oneof", field) }}
+			{% endfor %}
+		}
+	{% endfor %}
+
 	return m
 }
 

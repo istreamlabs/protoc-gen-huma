@@ -147,4 +147,11 @@ func TestHumaRoundtrip(t *testing.T) {
 	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num64": -1}`))
 	app.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because not >= 0
+
+	// One-of test
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"tag": "foo", "another": {"value": "foo"}}`))
+	app.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because of one-of rule
+	assert.Contains(t, w.Body.String(), "tag, another")
 }

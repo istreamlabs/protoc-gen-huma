@@ -140,17 +140,8 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 		}
 	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
 		if *f.TypeName == ".google.protobuf.Timestamp" {
-			found := false
-			for _, name := range tFile.Imports {
-				if name == "time" {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				tFile.Imports = append(tFile.Imports, "time", "google.golang.org/protobuf/types/known/timestamppb")
-			}
+			tFile.Imports["time"] = true
+			tFile.Imports["google.golang.org/protobuf/types/known/timestamppb"] = true
 
 			return "*time.Time", "", false, nil
 		}
@@ -244,6 +235,7 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 			Name:        goCase(prefix + " " + msg.GetName()),
 			ProtoGoName: p + casing.Camel(msg.GetName(), casing.Identity),
 			Fields:      []Field{},
+			OneOfs:      map[string][]Field{},
 			Comment:     getComments(tFile, msgPath),
 		}
 
@@ -262,7 +254,23 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 			// Only expose public fields!
 			if proto.GetExtension(f.GetOptions(), annotation.E_Public).(bool) || os.Getenv("ALL_PUBLIC") != "" {
 				fieldPath := append(append([]int32{}, msgPath...), 2, int32(j))
-				tMsg.Fields = append(tMsg.Fields, newField(tFile, msg, fieldPath, f))
+				tField := newField(tFile, msg, fieldPath, f)
+
+				if tField.OneOf != "" {
+					// One-of fields have some extra rules and require some additional
+					// packages.
+					tFile.Imports["net/http"] = true
+					tFile.Imports["reflect"] = true
+					tFile.Imports["strings"] = true
+					tFile.Imports["github.com/istreamlabs/huma"] = true
+					if tMsg.OneOfs[tField.OneOf] == nil {
+						tMsg.OneOfs[tField.OneOf] = []Field{}
+					}
+					tMsg.OneOfs[tField.OneOf] = append(tMsg.OneOfs[tField.OneOf], tField)
+				}
+
+				// Add the new field to the message type.
+				tMsg.Fields = append(tMsg.Fields, tField)
 			}
 		}
 
@@ -320,7 +328,7 @@ func run(input []byte) []byte {
 		tFile := File{
 			Proto:         file.Proto,
 			PackageName:   fmt.Sprintf("%s", file.GoPackageName),
-			Imports:       []string{string(file.GoImportPath)},
+			Imports:       map[string]bool{string(file.GoImportPath): true},
 			ProtoGoImport: *file.Proto.Options.GoPackage,
 			KnownMap:      map[string]bool{},
 			Messages:      []Message{},
