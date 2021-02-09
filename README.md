@@ -165,7 +165,7 @@ Since maps and arrays of different value types can't be assigned to each other y
 
 ### One-of Support
 
-This is an interesting one. Huma doesn't support one-of out of the box, despite [JSON-Schema having support for it](https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1). For now we expose individual fields. If you set multiple then you get undefined behavior (one will win).
+This is an interesting one. Huma doesn't support one-of out of the box, despite [JSON-Schema having support for it](https://json-schema.org/draft/2019-09/json-schema-core.html#rfc.section.9.2.1). For now we expose individual fields. If you set multiple in the request JSON then you get a validation error.
 
 Go generates an intermediate type and a wrapper struct for a single field. This is why our field representations have a `OneOf` attribute which corresponds to the single generated Go field name for all the possible fields in the one-of. This is used in the template to set the right field.
 
