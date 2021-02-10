@@ -372,5 +372,5 @@ func main() {
 	out := run(input)
 
 	// Write the response to stdout, to be picked up by protoc.
-	fmt.Fprintf(os.Stdout, string(out))
+	os.Stdout.Write(out)
 }
