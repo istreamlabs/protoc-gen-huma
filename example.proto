@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package example;
+
+import "google/protobuf/timestamp.proto";
+import "annotation/huma.proto";
+import "annotation/validate.proto";
+
+option go_package = "github.com/istreamlabs/protoc-gen-huma/example;example";
+
+enum Global {
+    NONE = 0;
+    ONE = 1;
+}
+
+message Message {
+    string hidden = 1;
+    // Anything with the public tag will be in the Huma model.
+    int32 num32 = 2 [(huma.public) = true, (validate.rules).int32 = {gt: 0, lt: 100}];
+    int64 num64 = 3 [deprecated = true, (huma.public) = true, (validate.rules).int64 = {gte: 0, lte: 100}];
+    uint32 unsigned32 = 4 [(huma.public) = true];
+    uint64 unsigned64 = 5 [(huma.public) = true];
+    float float = 6 [(huma.public) = true];
+    double double = 7 [(huma.public) = true];
+    string name = 8 [(huma.public) = true];
+    bool enabled = 9 [(huma.public) = true];
+    Sub sub = 10 [(huma.public) = true];
+    repeated int32 primitive_array = 11 [(huma.public) = true];
+    repeated Global enum_array = 12 [(huma.public) = true];
+    repeated Another complex_array = 13 [(huma.public) = true];
+    map<string, int32> kv = 14 [(huma.public) = true];
+    map<string, Another> kv_complex = 15 [(huma.public) = true];
+    oneof only_one {
+        string tag = 16 [(huma.public) = true];
+        Another another = 17 [(huma.public) = true];
+    }
+    google.protobuf.Timestamp ts = 18 [(huma.public) = true];
+}
+
+message Sub {
+    enum Nested {
+        FOO = 0;
+        BAR = 1;
+    }
+
+    Nested testEnum = 1 [(huma.public) = true];
+}
+
+message Another {
+    string value = 1 [(huma.public) = true];
+}
