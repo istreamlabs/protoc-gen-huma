@@ -80,10 +80,10 @@ type Message struct {
 	ProtoGoName string
 
 	// Fields is a slice of field definitions in the message.
-	Fields []Field
+	Fields []*Field
 
 	// OneOfs is a map of one-of names to fields.
-	OneOfs map[string][]Field
+	OneOfs map[string][]*Field
 
 	// Comment is the leading comment for the message, if any.
 	Comment string

@@ -183,8 +183,8 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 }
 
 // newField makes a field description from a protobuf field.
-func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath []int32, protoField *descriptorpb.FieldDescriptorProto) Field {
-	f := Field{
+func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath []int32, protoField *descriptorpb.FieldDescriptorProto) *Field {
+	f := &Field{
 		Name:        goCase(protoField.GetName()),
 		ProtoGoName: casing.Camel(protoField.GetName()),
 		JSONName:    casing.Snake(protoField.GetJsonName()),
@@ -208,12 +208,9 @@ func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath
 		// item in the group can still be a unique type, just *where* we set it
 		// in the generated Go struct changes.
 		f.OneOf = casing.Camel(protoMessage.OneofDecl[int(*protoField.OneofIndex)].GetName())
-
-		// TODO: We should limit input to one of the fields being set, and if more
-		// than on is set we should generate a validation error.
 	}
 
-	convertValidation(protoField, &f)
+	convertValidation(protoField, f)
 
 	return f
 }
@@ -234,8 +231,8 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 		tMsg := Message{
 			Name:        goCase(prefix + " " + msg.GetName()),
 			ProtoGoName: p + casing.Camel(msg.GetName(), casing.Identity),
-			Fields:      []Field{},
-			OneOfs:      map[string][]Field{},
+			Fields:      []*Field{},
+			OneOfs:      map[string][]*Field{},
 			Comment:     getComments(tFile, msgPath),
 		}
 
@@ -263,9 +260,6 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 					tFile.Imports["reflect"] = true
 					tFile.Imports["strings"] = true
 					tFile.Imports["github.com/istreamlabs/huma"] = true
-					if tMsg.OneOfs[tField.OneOf] == nil {
-						tMsg.OneOfs[tField.OneOf] = []Field{}
-					}
 					tMsg.OneOfs[tField.OneOf] = append(tMsg.OneOfs[tField.OneOf], tField)
 				}
 
@@ -274,7 +268,23 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 			}
 		}
 
-		if true || len(tMsg.Fields) > 0 && !tFile.KnownMap[tMsg.Name] {
+		// All fields are loaded, document one-ofs so users know which fields
+		// are mutually exclusive since we handle this with custom Huma validation
+		// logic instead of JSON Schema.
+		for _, fields := range tMsg.OneOfs {
+			names := []string{}
+			for _, f := range fields {
+				names = append(names, f.JSONName)
+			}
+			for _, f := range fields {
+				if f.Comment != "" {
+					f.Comment += " "
+				}
+				f.Comment += "Only one of ['" + strings.Join(names, "', '") + "'] may be set."
+			}
+		}
+
+		if !tFile.KnownMap[tMsg.Name] {
 			tFile.KnownMap[tMsg.Name] = true
 			tFile.Messages = append(tFile.Messages, tMsg)
 		}
@@ -334,7 +344,9 @@ func run(input []byte) []byte {
 			Messages:      []Message{},
 		}
 
-		// Add all the public types from the file.
+		// Add all the public types from the file. The magic numbers below are from
+		// the FileDescriptorProto message, see:
+		// https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/descriptor.proto#L75-L76
 		addEnums(&tFile, "", []int32{5}, file.Proto.EnumType)
 		traverse(&tFile, "", []int32{4}, file.Proto.MessageType)
 

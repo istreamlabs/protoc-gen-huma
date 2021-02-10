@@ -82,7 +82,7 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 			{%- endfor %}
 			if len(seen) > 1 {
 				ctx.AddError(&huma.ErrorDetail{
-					Message:  "Only one of [{% for field in fields %}'{{ field.JSONName }}', {% endfor %}] allowed in 'Message'",
+					Message:  "Only one of [{% for field in fields %}'{{ field.JSONName }}'{% if not forloop.last %}, {% endif %}{% endfor %}] allowed in 'Message'",
 					Location: seen[0],
 					Value:    strings.Join(seen, ", "),
 				})
