@@ -12,4 +12,15 @@ extend google.protobuf.FieldOptions {
   // ReadOnly marks that a field is set by the server. The client can only
   // read its value, e.g. resource creation date.
   optional bool readOnly = 84842;
+
+  // Name specifies the Huma Go field name. For example, a field might be cased
+  // as `Mp2T` but should be `MP2T` because it is a non-common initialism.
+  // Setting this field also updates the JSON name unless it has also been
+  // overridden.
+  optional string name = 84843;
+
+  // JSON specifies the Huma field's JSON name. Usually this is derived from
+  // the field's name, but this option allows you to override it. For example,
+  // a field named `MP2T` might become `mp2_t` but should be `mp2t`.
+  optional string json = 84844;
 }

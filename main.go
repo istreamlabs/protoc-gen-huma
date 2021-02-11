@@ -184,10 +184,21 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 
 // newField makes a field description from a protobuf field.
 func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath []int32, protoField *descriptorpb.FieldDescriptorProto) *Field {
+	name := goCase(protoField.GetName())
+	jsName := casing.Snake(protoField.GetJsonName())
+
+	if s := proto.GetExtension(protoField.GetOptions(), annotation.E_Name).(string); s != "" {
+		name = s
+		jsName = casing.Snake(s)
+	}
+	if s := proto.GetExtension(protoField.GetOptions(), annotation.E_Json).(string); s != "" {
+		jsName = s
+	}
+
 	f := &Field{
-		Name:        goCase(protoField.GetName()),
+		Name:        name,
 		ProtoGoName: casing.Camel(protoField.GetName()),
-		JSONName:    casing.Snake(protoField.GetJsonName()),
+		JSONName:    jsName,
 		Comment:     getComments(tFile, fieldPath),
 	}
 
