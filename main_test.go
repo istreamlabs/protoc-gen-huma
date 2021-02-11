@@ -63,7 +63,8 @@ func TestHumaRoundtrip(t *testing.T) {
 				Value: "another",
 			},
 		},
-		Ts: timestamppb.New(time.Date(2020, 01, 01, 12, 0, 0, 0, time.UTC)),
+		Ts:   timestamppb.New(time.Date(2020, 01, 01, 12, 0, 0, 0, time.UTC)),
+		Mp2T: true,
 	}
 
 	// Expected JSON representation of the above. We will use this to both check
@@ -96,7 +97,8 @@ func TestHumaRoundtrip(t *testing.T) {
 		"another": {
 			"value": "another"
 		},
-		"ts": "2020-01-01T12:00:00Z"
+		"ts": "2020-01-01T12:00:00Z",
+		"mp2t": true
 	}`
 
 	// Set up a Huma instance & register a route. No middleware so that we
