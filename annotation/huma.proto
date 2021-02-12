@@ -9,9 +9,9 @@ extend google.protobuf.FieldOptions {
   // Public marks that a field should be included in the generated Huma model.
   optional bool public = 84841;
 
-  // ReadOnly marks that a field is set by the server. The client can only
+  // Read-only marks that a field is set by the server. The client can only
   // read its value, e.g. resource creation date.
-  optional bool readOnly = 84842;
+  optional bool read_only = 84842;
 
   // Name specifies the Huma Go field name. For example, a field might be cased
   // as `Mp2T` but should be `MP2T` because it is a non-common initialism.
