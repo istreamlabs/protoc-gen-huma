@@ -46,12 +46,12 @@ The following protobuf features are supported:
 
 The following new annotations are supported when using the `annotation/huma.proto` import:
 
-| Name       | Type     | Example                    | Description                                                                           |
-| ---------- | -------- | -------------------------- | ------------------------------------------------------------------------------------- |
-| `public`   | `bool`   | `[(huma.public) = true]`   | Make a field public.                                                                  |
-| `readOnly` | `bool`   | `[(huma.readOnly) = true]` | Prevent writing to the field, useful for server-generated values, e.g. creation time. |
-| `name`     | `string` | `[(huma.name) = "Foo"]`    | Override the generated Go field name.                                                 |
-| `json`     | `string` | `[(huma.json) = "foo"]`    | Override the generated JSON field name.                                               |
+| Name        | Type     | Example                     | Description                                                                           |
+| ----------- | -------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| `public`    | `bool`   | `[(huma.public) = true]`    | Make a field public.                                                                  |
+| `read_only` | `bool`   | `[(huma.read_only) = true]` | Prevent writing to the field, useful for server-generated values, e.g. creation time. |
+| `name`      | `string` | `[(huma.name) = "Foo"]`     | Override the generated Go field name.                                                 |
+| `json`      | `string` | `[(huma.json) = "foo"]`     | Override the generated JSON field name.                                               |
 
 ## Example
 
