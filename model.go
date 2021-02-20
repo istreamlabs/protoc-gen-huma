@@ -69,6 +69,9 @@ type Field struct {
 
 	// Validation contains validation rules for this field.
 	Validation Validation
+
+	// Example provides an example value for documentation.
+	Example string
 }
 
 // Message represents a protobuf message type whithin a file.

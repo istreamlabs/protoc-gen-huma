@@ -11,12 +11,13 @@ option go_package = "github.com/istreamlabs/protoc-gen-huma/example;example";
 enum Global {
     NONE = 0;
     ONE = 1;
+    TWO = 2 [(huma.exclude) = true];
 }
 
 message Message {
     string hidden = 1;
     // Anything with the public tag will be in the Huma model.
-    int32 num32 = 2 [(huma.public) = true, (validate.rules).int32 = {gt: 0, lt: 100}];
+    int32 num32 = 2 [(huma.public) = true, (validate.rules).int32 = {gt: 0, lt: 100}, (huma.multiple_of) = 2, (huma.example) = "16"];
     int64 num64 = 3 [deprecated = true, (huma.public) = true, (validate.rules).int64 = {gte: 0, lte: 100}];
     uint32 unsigned32 = 4 [(huma.public) = true];
     uint64 unsigned64 = 5 [(huma.public) = true];

@@ -31,11 +31,20 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestExcludedEnum(t *testing.T) {
+	keys := []string{}
+	for k := range examplehuma.GlobalValuesMap {
+		keys = append(keys, string(k))
+	}
+
+	assert.NotContains(t, keys, "TWO")
+}
+
 func TestHumaRoundtrip(t *testing.T) {
 	// Example protobuf message we will use to test various features.
 	proto := &example.Message{
 		Hidden:     "hidden",
-		Num32:      int32(1),
+		Num32:      int32(2),
 		Num64:      int64(2),
 		Unsigned32: uint32(3),
 		Unsigned64: uint64(4),
@@ -70,7 +79,7 @@ func TestHumaRoundtrip(t *testing.T) {
 	// Expected JSON representation of the above. We will use this to both check
 	// the above converted to JSON *and* do a round-trip test.
 	json := `{
-		"num32": 1,
+		"num32": 2,
 		"num64": 2,
 		"unsigned32": 3,
 		"unsigned64": 4,
@@ -138,6 +147,12 @@ func TestHumaRoundtrip(t *testing.T) {
 	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num32": 0}`))
 	app.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because not > 0
+
+	// Next: multiple of validation
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/", strings.NewReader(`{"num32": 1}`))
+	app.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because not multiple of 2
 
 	// Next: inclusive minimum should pass at the boundary value
 	w = httptest.NewRecorder()
