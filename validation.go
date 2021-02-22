@@ -37,6 +37,7 @@ type Validation struct {
 	MaxItems   int64
 	Unique     bool
 	EnumValues []string
+	MultipleOf int32
 }
 
 // convertValidation from protoc-gen-validate rules to Huma rules.
@@ -59,6 +60,12 @@ func convertValidation(protoField *descriptorpb.FieldDescriptorProto, f *Field) 
 			values = append(values, v.Label)
 		}
 		f.Validation.EnumValues = values
+	}
+
+	// protoc-gen-validate doesn't support multiple-of but JSON Schema & Huma do,
+	// so here we use a custom option for that.
+	if e := proto.GetExtension(protoField.GetOptions(), annotation.E_MultipleOf).(int32); e > 0 {
+		f.Validation.MultipleOf = e
 	}
 
 	if rules, ok := proto.GetExtension(protoField.GetOptions(), validate.E_Rules).(*validate.FieldRules); ok && rules != nil {

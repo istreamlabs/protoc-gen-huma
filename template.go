@@ -18,7 +18,7 @@ var humaTemplate = pongo2.Must(pongo2.FromString(`
 package {{ file.PackageName }}huma
 
 import (
-	{% for import in file.Imports %}
+	{% for import in file.Imports sorted -%}
 		"{{ import }}"
 	{% endfor %}
 )
@@ -56,6 +56,8 @@ import (
 	{%- if field.Validation.Unique %} uniqueItems:"true"{% endif -%}
 	{%- if field.Validation.ReadOnly %} readOnly:"true"{% endif -%}
 	{%- if field.Validation.Deprecated %} deprecated:"true"{% endif -%}
+	{%- if field.Validation.MultipleOf %} multipleOf:"{{ field.Validation.MultipleOf }}"{% endif -%}
+	{%- if field.Example %} example:"{{ field.Example }}"{% endif -%}
 	{%- if field.Comment %} doc:"{{ field.Comment }}"{% endif -%}
 {%- endmacro %}
 
@@ -72,7 +74,7 @@ type {{ msg.Name }} struct {
 
 {% if msg.OneOfs %}
 func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
-	{%- for name, fields in msg.OneOfs %}
+	{%- for name, fields in msg.OneOfs sorted %}
 		{
 			seen := []string{}
 			{%- for field in fields %}
@@ -146,7 +148,7 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 		{% endif %}
 	{%- endfor %}
 
-	{% for name, fields in msg.OneOfs %}
+	{% for name, fields in msg.OneOfs sorted %}
 		switch oneof := proto.{{ name }}.(type) {
 			{% for field in fields %}
 				case *{{ file.PackageName }}.{{ msg.ProtoGoName }}_{{ field.ProtoGoName }}:

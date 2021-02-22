@@ -81,6 +81,11 @@ func addEnums(tFile *File, prefix string, path []int32, enums []*descriptor.Enum
 		}
 
 		for _, v := range e.GetValue() {
+			if e := proto.GetExtension(v.GetOptions(), annotation.E_Exclude).(bool); e {
+				// Skip this enum value!
+				continue
+			}
+
 			tEnum.Values = append(tEnum.Values, EnumValue{
 				Name:  goCase(v.GetName()),
 				Label: v.GetName(),
@@ -195,11 +200,17 @@ func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath
 		jsName = s
 	}
 
+	example := ""
+	if e := proto.GetExtension(protoField.GetOptions(), annotation.E_Example).(string); e != "" {
+		example = e
+	}
+
 	f := &Field{
 		Name:        name,
 		ProtoGoName: casing.Camel(protoField.GetName()),
 		JSONName:    jsName,
 		Comment:     getComments(tFile, fieldPath),
+		Example:     example,
 	}
 
 	f.GoType, f.ProtoGoType, f.IsPrimitive, f.Enum = getType(tFile, "", protoField)

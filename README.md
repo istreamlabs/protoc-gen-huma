@@ -46,12 +46,22 @@ The following protobuf features are supported:
 
 The following new annotations are supported when using the `annotation/huma.proto` import:
 
-| Name        | Type     | Example                     | Description                                                                           |
-| ----------- | -------- | --------------------------- | ------------------------------------------------------------------------------------- |
-| `public`    | `bool`   | `[(huma.public) = true]`    | Make a field public.                                                                  |
-| `read_only` | `bool`   | `[(huma.read_only) = true]` | Prevent writing to the field, useful for server-generated values, e.g. creation time. |
-| `name`      | `string` | `[(huma.name) = "Foo"]`     | Override the generated Go field name.                                                 |
-| `json`      | `string` | `[(huma.json) = "foo"]`     | Override the generated JSON field name.                                               |
+### Enum Value Annotations
+
+| Name      | Type   | Example                   | Description                                    |
+| --------- | ------ | ------------------------- | ---------------------------------------------- |
+| `exclude` | `bool` | `[(huma.exclude)] = true` | Exclude an enum value from the generated code. |
+
+### Field Annotations
+
+| Name          | Type     | Example                     | Description                                                                           |
+| ------------- | -------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| `public`      | `bool`   | `[(huma.public) = true]`    | Make a field public.                                                                  |
+| `read_only`   | `bool`   | `[(huma.read_only) = true]` | Prevent writing to the field, useful for server-generated values, e.g. creation time. |
+| `name`        | `string` | `[(huma.name) = "Foo"]`     | Override the generated Go field name.                                                 |
+| `json`        | `string` | `[(huma.json) = "foo"]`     | Override the generated JSON field name.                                               |
+| `multiple_of` | `int32`  | `[(huma.multiple_of) = 2]`  | Limit an integer value to a multiple of another integer                               |
+| `example`     | `string` | `[(huma.example) = "1234"`  | Provide an example for this field                                                     |
 
 ## Example
 

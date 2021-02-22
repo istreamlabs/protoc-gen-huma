@@ -5,6 +5,11 @@ import "google/protobuf/descriptor.proto";
 
 option go_package = "github.com/istreamlabs/protoc-gen-huma/annotation";
 
+extend google.protobuf.EnumValueOptions {
+  // Excludes this enum value from the available options.
+  optional bool exclude = 84841;
+}
+
 extend google.protobuf.FieldOptions {
   // Public marks that a field should be included in the generated Huma model.
   optional bool public = 84841;
@@ -23,4 +28,13 @@ extend google.protobuf.FieldOptions {
   // the field's name, but this option allows you to override it. For example,
   // a field named `MP2T` might become `mp2_t` but should be `mp2t`.
   optional string json = 84844;
+
+  // Multiple-of specifies that the number must be a multiple of this value
+  // or validation will fail.
+  optional int32 multiple_of = 84845;
+
+  // Example provides a sample value for documentation purposes. This string
+  // value will get put directly into the Huma field example and will get
+  // written out in JSON Schema with the appropriate type.
+  optional string example = 84846;
 }
