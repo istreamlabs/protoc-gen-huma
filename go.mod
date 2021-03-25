@@ -7,10 +7,10 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/envoyproxy/protoc-gen-validate v0.4.1
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
-	github.com/goccy/go-yaml v1.8.8 // indirect
+	github.com/goccy/go-yaml v1.8.9 // indirect
 	github.com/golang/protobuf v1.4.3
-	github.com/istreamlabs/huma v0.0.0-20210211211318-1470692837ea
+	github.com/istreamlabs/huma v0.0.0-20210322173732-bfa8e9512c02
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210324051608-47abb6519492 // indirect
 	google.golang.org/protobuf v1.25.0
 )

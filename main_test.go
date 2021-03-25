@@ -53,11 +53,13 @@ func TestHumaRoundtrip(t *testing.T) {
 		Name:       "foo",
 		Enabled:    true,
 		Sub: &example.Sub{
-			TestEnum: example.Sub_BAR,
+			TestEnum:  example.Sub_BAR,
+			TestEnum2: 5, // Invalid value, will not serialize.
 		},
 		PrimitiveArray: []int32{1, 2, 3},
 		EnumArray: []example.Global{
 			example.Global_ONE,
+			example.Global_TWO, // Note: this is NOT public and should not be included!
 		},
 		ComplexArray: []*example.Another{
 			{Value: "first"},
