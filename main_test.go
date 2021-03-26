@@ -19,7 +19,7 @@ import (
 
 //go:generate protoc --proto_path annotation annotation/huma.proto --go_out=./annotation --go_opt=paths=source_relative
 //go:generate go install
-//go:generate sh -c "mkdir -p example examplehuma && DUMP_REQUEST=1 protoc --proto_path=. -I=. -I ../protoc-gen-validate/ --go_out=example --go_opt=paths=source_relative --huma_out=examplehuma example.proto"
+//go:generate sh -c "mkdir -p example examplehuma && DUMP_REQUEST=1 protoc --proto_path=. -I=. --go_out=example --go_opt=paths=source_relative --huma_out=examplehuma example.proto"
 
 func TestMain(m *testing.M) {
 	// Run the code generator to get proper coverage reporting. We don't care
