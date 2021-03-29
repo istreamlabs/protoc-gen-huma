@@ -19,7 +19,7 @@ import (
 
 //go:generate protoc --proto_path annotation annotation/huma.proto --go_out=./annotation --go_opt=paths=source_relative
 //go:generate go install
-//go:generate sh -c "mkdir -p example examplehuma && DUMP_REQUEST=1 protoc --proto_path=. -I=. -I ../protoc-gen-validate/ --go_out=example --go_opt=paths=source_relative --huma_out=examplehuma example.proto"
+//go:generate sh -c "mkdir -p example examplehuma && DUMP_REQUEST=1 protoc --proto_path=. -I=. --go_out=example --go_opt=paths=source_relative --huma_out=examplehuma example.proto"
 
 func TestMain(m *testing.M) {
 	// Run the code generator to get proper coverage reporting. We don't care
@@ -53,11 +53,13 @@ func TestHumaRoundtrip(t *testing.T) {
 		Name:       "foo",
 		Enabled:    true,
 		Sub: &example.Sub{
-			TestEnum: example.Sub_BAR,
+			CamelCaseEnum: example.Sub_BAR,
+			SnakeCaseEnum: 5, // Invalid value, will not serialize.
 		},
 		PrimitiveArray: []int32{1, 2, 3},
 		EnumArray: []example.Global{
 			example.Global_ONE,
+			example.Global_TWO, // Note: this is NOT public and should not be included!
 		},
 		ComplexArray: []*example.Another{
 			{Value: "first"},
@@ -88,7 +90,7 @@ func TestHumaRoundtrip(t *testing.T) {
 		"name": "foo",
 		"enabled": true,
 		"sub": {
-			"test_enum": "BAR"
+			"camel_case_enum": "BAR"
 		},
 		"primitive_array": [1, 2, 3],
 		"enum_array": ["ONE"],

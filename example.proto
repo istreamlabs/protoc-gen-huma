@@ -41,11 +41,13 @@ message Message {
 
 message Sub {
     enum Nested {
-        FOO = 0;
-        BAR = 1;
+        NONE = 0 [(huma.exclude) = true];
+        FOO = 1;
+        BAR = 2;
     }
 
-    Nested testEnum = 1 [(huma.public) = true];
+    Nested CamelCaseEnum = 1 [(huma.public) = true];
+    Nested snake_case_enum = 2 [(huma.public) = true];
 }
 
 message Another {

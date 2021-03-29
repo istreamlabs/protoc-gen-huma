@@ -38,6 +38,12 @@ import (
 			"{{ value.Label }}": {{ file.PackageName }}.{{ enum.ProtoGoName }}({{ value.Value }}),
 		{% endfor %}
 	}
+
+	var {{ enum.Name }}NamesMap map[{{ file.PackageName }}.{{ enum.ProtoGoName }}]{{ enum.Name }} = map[{{ file.PackageName }}.{{ enum.ProtoGoName }}]{{ enum.Name }}{
+		{% for value in enum.Values -%}
+			{{ value.Value }}: {{ enum.Name }}("{{ value.Label }}"),
+		{% endfor %}
+	}
 {% endfor %}
 
 {% macro tags(field) -%}
@@ -107,7 +113,11 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 			tmp := {{ field.GoType }}{}
 			for _, i := range {{ proto }}.{{ field.ProtoGoName }} {
 				{% if field.Enum -%}
-					tmp = append(tmp, {{ field.Enum.Name }}({{ file.PackageName }}.{{ field.Enum.ProtoGoName }}_name[int32(i)]))
+					enumValue := {{ field.Enum.Name }}NamesMap[i]
+					if enumValue == "" {
+						continue
+					}
+					tmp = append(tmp, enumValue)
 				{% else -%}
 					if i == nil {
 						continue
@@ -119,7 +129,9 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 		}
 	{% else -%}
 		{% if field.Enum -%}
-			m.{{ field.Name }} = {{ field.Enum.Name }}({{ proto }}.{{ field.ProtoGoName }}.String())
+			if v, ok := {{ field.Enum.Name }}NamesMap[{{ proto }}.{{ field.ProtoGoName }}]; ok {
+				m.{{ field.Name }} = v
+			}
 		{% else -%}
 			if {{ proto }}.{{ field.ProtoGoName }} != nil {
 				{% if field.IsMap -%}
@@ -172,7 +184,9 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 			tmp := {{ field.ProtoGoType }}{}
 			for _, i := range m.{{ field.Name }} {
 				{% if field.Enum -%}
-					tmp = append(tmp, {{ field.Enum.Name }}ValuesMap[i])
+					if v, ok := {{ field.Enum.Name }}ValuesMap[i]; ok {
+						tmp = append(tmp, v)
+					}
 				{% else -%}
 					if i == nil {
 						continue
@@ -184,7 +198,9 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 		}
 	{% else -%}
 		{% if field.Enum -%}
-			{{ proto }}.{{ field.ProtoGoName }} = {{ field.Enum.Name }}ValuesMap[m.{{ field.Name }}]
+			if m.{{ field.Name }} != "" {
+				{{ proto }}.{{ field.ProtoGoName }} = {{ field.Enum.Name }}ValuesMap[m.{{ field.Name }}]
+			}
 		{% else -%}
 			if m.{{ field.Name }} != nil {
 				{% if field.IsMap -%}
