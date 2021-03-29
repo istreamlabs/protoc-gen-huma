@@ -53,8 +53,8 @@ func TestHumaRoundtrip(t *testing.T) {
 		Name:       "foo",
 		Enabled:    true,
 		Sub: &example.Sub{
-			TestEnum:  example.Sub_BAR,
-			TestEnum2: 5, // Invalid value, will not serialize.
+			CamelCaseEnum: example.Sub_BAR,
+			SnakeCaseEnum: 5, // Invalid value, will not serialize.
 		},
 		PrimitiveArray: []int32{1, 2, 3},
 		EnumArray: []example.Global{
@@ -90,7 +90,7 @@ func TestHumaRoundtrip(t *testing.T) {
 		"name": "foo",
 		"enabled": true,
 		"sub": {
-			"test_enum": "BAR"
+			"camel_case_enum": "BAR"
 		},
 		"primitive_array": [1, 2, 3],
 		"enum_array": ["ONE"],

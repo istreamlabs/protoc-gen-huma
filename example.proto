@@ -46,8 +46,8 @@ message Sub {
         BAR = 2;
     }
 
-    Nested testEnum = 1 [(huma.public) = true];
-    Nested test_enum2 = 2 [(huma.public) = true];
+    Nested CamelCaseEnum = 1 [(huma.public) = true];
+    Nested snake_case_enum = 2 [(huma.public) = true];
 }
 
 message Another {
