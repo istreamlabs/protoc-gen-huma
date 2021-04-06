@@ -25,12 +25,33 @@ import (
 // spaceRegex is used to collapse/simplify consecutive whitespace characters.
 var spaceRegex = regexp.MustCompile(`\s+`)
 
+// registryEntry holds information about a type
+type registryEntry struct {
+	file           *protogen.File
+	enum           *Enum
+	enumDescriptor *descriptor.EnumDescriptorProto
+	descriptor     *descriptor.DescriptorProto
+}
+
 // registry of Protobuf types. These can be one of:
 // - descriptorpb.EnumDescriptorProto
 // - descriptorpb.DiscriptorProto
 // This is used to load all types and provide a quick lookup for type info
 // across proto packages.
-var registry map[string]interface{} = map[string]interface{}{}
+var registry map[string]registryEntry = map[string]registryEntry{}
+
+// stripPkg strips the package name from a prefix string. Example:
+// .package1.MyItem.SubItem => MyItem.SubItem
+func stripPkg(prefix string) string {
+	if strings.HasPrefix(prefix, ".") {
+		// Strip the package name from the prefix.
+		parts := strings.Split(prefix, ".")
+		if len(parts) > 1 {
+			prefix = strings.Join(parts[2:], ".")
+		}
+	}
+	return prefix
+}
 
 // goCase returns camel cased names with capitalized initialisms that pass
 // the Go linter.
@@ -43,11 +64,21 @@ func goCase(values ...string) string {
 // points to a list of message descriptors, the 2nd message in that list and
 // the first field in the message Descriptor type. Each path can have leading
 // and trailing comments. Yes, this is a batshit crazy way to do things.
-func getComments(tFile *File, path []int32) string {
-	for _, loc := range tFile.Proto.SourceCodeInfo.Location {
-		if reflect.DeepEqual(loc.Path, path) && loc.LeadingComments != nil {
+func getComments(file *descriptor.FileDescriptorProto, path []int32) string {
+	for _, loc := range file.SourceCodeInfo.Location {
+		if reflect.DeepEqual(loc.Path, path) {
+			comment := ""
+
+			// Take both leading (line before) and trailing (inline) comments.
+			if loc.LeadingComments != nil {
+				comment = *loc.LeadingComments
+			}
+			if loc.TrailingComments != nil {
+				comment += " " + *loc.TrailingComments
+			}
+
 			// Replace double quotes, used for struct tags.
-			comment := strings.Replace(*loc.LeadingComments, `"`, "'", -1)
+			comment = strings.Replace(comment, `"`, "'", -1)
 
 			// Replace backticks, used for struct tags.
 			comment = strings.Replace(comment, "`", "'", -1)
@@ -64,39 +95,42 @@ func getComments(tFile *File, path []int32) string {
 	return ""
 }
 
-// addEnums adds all the proto enum information to the file. Enums can come from
-// the top-level file or be embedded inside nested messages.
-func addEnums(tFile *File, prefix string, path []int32, enums []*descriptor.EnumDescriptorProto) {
+// buildEnum builds a model of the enum with filtered / converted values
+// and the Huma naming scheme.
+func buildEnum(file *descriptor.FileDescriptorProto, prefix string, path []int32, i int, e *descriptor.EnumDescriptorProto) *Enum {
+	prefix = stripPkg(prefix)
+
 	// If nested, prefix will be set with the outer name. We append to it below.
 	p := casing.Join(strings.Split(prefix, " "), "_", casing.Identity)
 	if p != "" {
 		p += "_"
 	}
 
-	for _, e := range enums {
-		tEnum := Enum{
-			Name:        goCase(prefix + " " + e.GetName()),
-			ProtoGoName: p + casing.Camel(e.GetName(), casing.Identity),
-			Values:      []EnumValue{},
-		}
-
-		for _, v := range e.GetValue() {
-			if e := proto.GetExtension(v.GetOptions(), annotation.E_Exclude).(bool); e {
-				// Skip this enum value!
-				continue
-			}
-
-			tEnum.Values = append(tEnum.Values, EnumValue{
-				Name:  goCase(v.GetName()),
-				Label: v.GetName(),
-				Value: v.GetNumber(),
-			})
-		}
-
-		if !tFile.KnownMap[tEnum.Name] {
-			tFile.Enums = append(tFile.Enums, tEnum)
-		}
+	enumPath := append(append([]int32{}, path...), int32(i))
+	tEnum := &Enum{
+		Name:        goCase(prefix + " " + e.GetName()),
+		ProtoGoName: p + casing.Camel(e.GetName(), casing.Identity),
+		Values:      []EnumValue{},
+		Comment:     getComments(file, enumPath),
 	}
+
+	for j, v := range e.GetValue() {
+		if e := proto.GetExtension(v.GetOptions(), annotation.E_Exclude).(bool); e {
+			// Skip this enum value!
+			continue
+		}
+
+		enumValuePath := append(append([]int32{}, path...), int32(i), 2, int32(j))
+
+		tEnum.Values = append(tEnum.Values, EnumValue{
+			Name:    goCase(v.GetName()),
+			Label:   v.GetName(),
+			Value:   v.GetNumber(),
+			Comment: getComments(file, enumValuePath),
+		})
+	}
+
+	return tEnum
 }
 
 // getType returns the Go type, protobuf-generated Go type, whether the type is
@@ -131,17 +165,19 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 		parts := strings.Split(*f.TypeName, ".")
 		prefix := ""
 		if parts[1] != tFile.PackageName {
-			prefix += parts[1] + "."
+			// Cross package import, so modify the name and add the import.
+			prefix += parts[1] + "huma."
+
+			if entry, ok := registry[*f.TypeName]; ok {
+				tFile.Imports[string(entry.file.GoImportPath)+"huma"] = true
+			}
 		}
 		t = prefix + goCase(strings.Join(parts[2:], "_"))
 		pt = parts[1] + "." + strings.Join(parts[2:], "_")
 		primitive = false
 
-		for _, e := range tFile.Enums {
-			if e.Name == t {
-				enum = &e
-				break
-			}
+		if entry, ok := registry[*f.TypeName]; ok {
+			enum = entry.enum
 		}
 	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
 		if *f.TypeName == ".google.protobuf.Timestamp" {
@@ -155,7 +191,7 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 		// represents an entry in the map as a repeated message. We only care
 		// about the value type and assume string keys here.
 		if d, ok := registry[*f.TypeName]; ok {
-			if proto, ok := d.(*descriptorpb.DescriptorProto); ok {
+			if proto := d.descriptor; proto != nil {
 				if proto.Options != nil && proto.Options.MapEntry != nil && *proto.Options.MapEntry {
 					// Field 0 = key, field 1 = value for every generated message.
 					t, pt, primitive, enum = getType(tFile, prefix, proto.Field[1])
@@ -170,7 +206,12 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 
 		prefix := "*"
 		if parts[1] != tFile.PackageName {
-			prefix += parts[1] + "."
+			// Cross package import, so modify the name and add the import.
+			prefix += parts[1] + "huma."
+
+			if entry, ok := registry[*f.TypeName]; ok {
+				tFile.Imports[string(entry.file.GoImportPath)+"huma"] = true
+			}
 		}
 		t = prefix + goCase(parts[2:]...)
 		pt = "*" + parts[1] + "." + strings.Join(parts[2:], "_")
@@ -209,7 +250,7 @@ func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath
 		Name:        name,
 		ProtoGoName: casing.Camel(protoField.GetName()),
 		JSONName:    jsName,
-		Comment:     getComments(tFile, fieldPath),
+		Comment:     getComments(tFile.Proto, fieldPath),
 		Example:     example,
 	}
 
@@ -237,15 +278,58 @@ func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath
 	return f
 }
 
-// traverse a set of messages recursively.
-func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.DescriptorProto) {
-	for i, msg := range items {
-		if msg.Options != nil && msg.Options.MapEntry != nil && *msg.Options.MapEntry {
-			// Skip generated map entry objects.
-			continue
+// traverse performs a depth-first recursive traversal of a proto file and emits
+// messages and enums with their respective prefix and path for generating
+// type names and getting comments.
+func traverse(prefix string, path []int32, msgs []*descriptor.DescriptorProto, enums []*descriptor.EnumDescriptorProto, onMessage func(string, []int32, *descriptor.DescriptorProto), onEnum func(string, []int32, *descriptor.EnumDescriptorProto)) {
+	// Start with enums so that they can be used by messages later.
+	for i, enum := range enums {
+		// Calculate the new path for comments. If the path is empty we are at the
+		// FileDescriptorProto level, otherwise DescriptorProto. Magic numbers
+		// are from those respective proto definitions. See:
+		// https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/descriptor.proto#L75-L76
+		newPath := []int32{}
+		if len(path) == 0 {
+			newPath = append(newPath, 5, int32(i))
+		} else {
+			newPath = append(append([]int32{}, path...), 4, int32(i))
 		}
 
-		msgPath := append(append([]int32{}, path...), int32(i))
+		// Emit the enum for processing.
+		onEnum(prefix, newPath, enum)
+	}
+
+	for i, msg := range msgs {
+		// Calculate the new path for comments. If the path is empty we are at the
+		// FileDescriptorProto level, otherwise DescriptorProto. Magic numbers
+		// are from those respective proto definitions. See:
+		// https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/descriptor.proto#L75-L76
+		newPath := []int32{}
+		if len(path) == 0 {
+			newPath = append(newPath, 4, int32(i))
+		} else {
+			newPath = append(append([]int32{}, path...), 3, int32(i))
+		}
+
+		// Traverse depth-first so that nested definitions are processed first.
+		// This is because nested items are often used within the wrapping message,
+		// e.g. a nested enum will be used in a message field type.
+		traverse(prefix+"."+*msg.Name, newPath, msg.NestedType, msg.EnumType, onMessage, onEnum)
+
+		// Emit the message for processing.
+		onMessage(prefix, newPath, msg)
+	}
+}
+
+func processFile(tFile *File) {
+	onMessage := func(prefix string, path []int32, msg *descriptor.DescriptorProto) {
+		if msg.Options != nil && msg.Options.MapEntry != nil && *msg.Options.MapEntry {
+			// Skip generated map entry objects.
+			return
+		}
+
+		prefix = stripPkg(prefix)
+
 		p := casing.Camel(prefix, casing.Identity)
 		if p != "" {
 			p += "_"
@@ -255,24 +339,13 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 			ProtoGoName: p + casing.Camel(msg.GetName(), casing.Identity),
 			Fields:      []*Field{},
 			OneOfs:      map[string][]*Field{},
-			Comment:     getComments(tFile, msgPath),
-		}
-
-		// Parse nested types first since the fields may reference them.
-		if len(msg.EnumType) > 0 {
-			newPath := append(append([]int32{}, msgPath...), 4)
-			addEnums(tFile, prefix+" "+msg.GetName(), newPath, msg.EnumType)
-		}
-
-		if len(msg.NestedType) > 0 {
-			newPath := append(append([]int32{}, msgPath...), 3)
-			traverse(tFile, prefix+" "+msg.GetName(), newPath, msg.NestedType)
+			Comment:     getComments(tFile.Proto, path),
 		}
 
 		for j, f := range msg.Field {
 			// Only expose public fields!
 			if proto.GetExtension(f.GetOptions(), annotation.E_Public).(bool) || os.Getenv("ALL_PUBLIC") != "" {
-				fieldPath := append(append([]int32{}, msgPath...), 2, int32(j))
+				fieldPath := append(append([]int32{}, path...), 2, int32(j))
 				tField := newField(tFile, msg, fieldPath, f)
 
 				if tField.OneOf != "" {
@@ -311,15 +384,41 @@ func traverse(tFile *File, prefix string, path []int32, items []*descriptorpb.De
 			tFile.Messages = append(tFile.Messages, tMsg)
 		}
 	}
+
+	onEnum := func(prefix string, path []int32, enum *descriptor.EnumDescriptorProto) {
+		// Since we built the enum models on the first pass while building the
+		// registry, we can just look up and re-use those here.
+		if entry, ok := registry[prefix+"."+*enum.Name]; ok {
+			if !tFile.KnownMap[entry.enum.Name] {
+				tFile.KnownMap[entry.enum.Name] = true
+				tFile.Enums = append(tFile.Enums, *entry.enum)
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "Error: Cannot find enum "+prefix+"."+*enum.Name)
+		}
+	}
+
+	traverse("."+*tFile.Proto.Package, []int32{}, tFile.Proto.MessageType, tFile.Proto.EnumType, onMessage, onEnum)
 }
 
-// buildRegistry makes a map of fully qualified type names to their proto
-// descriptors.
-func buildRegistry(prefix string, messages []*descriptorpb.DescriptorProto, enums []*descriptorpb.EnumDescriptorProto) {
-	for _, msg := range messages {
-		registry[prefix+"."+*msg.Name] = msg
-		buildRegistry(prefix+"."+*msg.Name, msg.NestedType, msg.EnumType)
+func buildRegistry(file *protogen.File, messages []*descriptorpb.DescriptorProto, enums []*descriptorpb.EnumDescriptorProto) {
+	onMessage := func(prefix string, path []int32, msg *descriptor.DescriptorProto) {
+		registry[prefix+"."+*msg.Name] = registryEntry{
+			file:       file,
+			descriptor: msg,
+		}
 	}
+
+	onEnum := func(prefix string, path []int32, enum *descriptor.EnumDescriptorProto) {
+		tEnum := buildEnum(file.Proto, prefix, path[:len(path)-1], int(path[len(path)-1]), enum)
+		registry[prefix+"."+*enum.Name] = registryEntry{
+			file:           file,
+			enum:           tEnum,
+			enumDescriptor: enum,
+		}
+	}
+
+	traverse("."+*file.Proto.Package, []int32{}, messages, enums, onMessage, onEnum)
 }
 
 func run(input []byte) []byte {
@@ -345,9 +444,10 @@ func run(input []byte) []byte {
 
 	// Generate a type registry map of fully-qualified type names (e.g.
 	// `.google.protobuf.duration`) to the corresponding message or enum
-	// descriptor for lookups later.
+	// descriptor for lookups later. This is the first of two passes for
+	// processing each file.
 	for _, file := range plugin.Files {
-		buildRegistry("."+*file.Proto.Package, file.Proto.MessageType, file.Proto.EnumType)
+		buildRegistry(file, file.Proto.MessageType, file.Proto.EnumType)
 	}
 
 	// Protoc passes a slice of File structs for us to process
@@ -366,16 +466,21 @@ func run(input []byte) []byte {
 			Messages:      []Message{},
 		}
 
-		// Add all the public types from the file. The magic numbers below are from
-		// the FileDescriptorProto message, see:
-		// https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/descriptor.proto#L75-L76
-		addEnums(&tFile, "", []int32{5}, file.Proto.EnumType)
-		traverse(&tFile, "", []int32{4}, file.Proto.MessageType)
+		// Add all the public types from the file. This is the second of two passes
+		// we do when processing a file.
+		processFile(&tFile)
 
 		// Only output the file if it has actual public stuff in it.
 		if len(tFile.Messages) > 0 || len(tFile.Enums) > 0 {
+			// Modify original filename. Example:
+			// path/to/package/file.proto => path/to/packagehuma/file.huma.go
 			p := file.Desc.Path()
-			filename := p[:len(p)-len(path.Ext(p))] + ".huma.go"
+			base := path.Base(p)
+			dir := path.Dir(p)
+			if dir != "" {
+				dir += "huma"
+			}
+			filename := path.Join(dir, base[:len(base)-len(path.Ext(base))]+".huma.go")
 			file := plugin.NewGeneratedFile(filename, ".")
 			if err := humaTemplate.ExecuteWriter(pongo2.Context{"file": tFile}, file); err != nil {
 				panic(err)

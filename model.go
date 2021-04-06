@@ -7,6 +7,9 @@ type EnumValue struct {
 	// Name is the Huma name for the enum value.
 	Name string
 
+	// Comment for the enum value, if any.
+	Comment string
+
 	// Label is the protobuf label for the enum value.
 	Label string
 

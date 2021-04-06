@@ -1,12 +1,14 @@
 syntax = "proto3";
 
-package example;
+package package1;
 
 import "google/protobuf/timestamp.proto";
 import "annotation/huma.proto";
 import "annotation/validate.proto";
 
-option go_package = "github.com/istreamlabs/protoc-gen-huma/example;example";
+import "package2/example2.proto";
+
+option go_package = "github.com/istreamlabs/protoc-gen-huma/example/package1;package1";
 
 enum Global {
     NONE = 0;
@@ -37,13 +39,16 @@ message Message {
     }
     google.protobuf.Timestamp ts = 18 [(huma.public) = true];
     bool mp2t = 19 [(huma.public) = true, (huma.name) = "MP2T", (huma.json) = "mp2t"];
+    package2.Message cross_package = 20 [(huma.public) = true];
+    package2.Fruits fruit = 21 [(huma.public) = true];
 }
 
 message Sub {
+    // Nested enum definition comment.
     enum Nested {
         NONE = 0 [(huma.exclude) = true];
-        FOO = 1;
-        BAR = 2;
+        FOO = 1; // Foo description
+        BAR = 2; // Bar description
     }
 
     Nested CamelCaseEnum = 1 [(huma.public) = true];
