@@ -29,6 +29,7 @@ import (
 
 	const (
 		{% for value in enum.Values -%}
+			{% if value.Comment %}// {{ value.Comment }}{% endif %}
 			{{ enum.Name }}{{ value.Name }} {{ enum.Name }} = "{{ value.Label }}"
 		{% endfor %}
 	)
@@ -113,7 +114,7 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 			tmp := {{ field.GoType }}{}
 			for _, i := range {{ proto }}.{{ field.ProtoGoName }} {
 				{% if field.Enum -%}
-					enumValue := {{ field.Enum.Name }}NamesMap[i]
+					enumValue := {{ field.GoType|slice:"2:" }}NamesMap[i]
 					if enumValue == "" {
 						continue
 					}
@@ -129,7 +130,7 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 		}
 	{% else -%}
 		{% if field.Enum -%}
-			if v, ok := {{ field.Enum.Name }}NamesMap[{{ proto }}.{{ field.ProtoGoName }}]; ok {
+			if v, ok := {{ field.GoType }}NamesMap[{{ proto }}.{{ field.ProtoGoName }}]; ok {
 				m.{{ field.Name }} = v
 			}
 		{% else -%}
@@ -184,7 +185,7 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 			tmp := {{ field.ProtoGoType }}{}
 			for _, i := range m.{{ field.Name }} {
 				{% if field.Enum -%}
-					if v, ok := {{ field.Enum.Name }}ValuesMap[i]; ok {
+					if v, ok := {{ field.GoType|slice:"2:" }}ValuesMap[i]; ok {
 						tmp = append(tmp, v)
 					}
 				{% else -%}
@@ -199,7 +200,7 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 	{% else -%}
 		{% if field.Enum -%}
 			if m.{{ field.Name }} != "" {
-				{{ proto }}.{{ field.ProtoGoName }} = {{ field.Enum.Name }}ValuesMap[m.{{ field.Name }}]
+				{{ proto }}.{{ field.ProtoGoName }} = {{ field.GoType }}ValuesMap[m.{{ field.Name }}]
 			}
 		{% else -%}
 			if m.{{ field.Name }} != nil {

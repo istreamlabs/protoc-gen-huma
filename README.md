@@ -41,6 +41,8 @@ The following protobuf features are supported:
   - String `min_len`, `max_len`, `pattern`, various formats like `uri-ref`
   - Arrays `min_items`, `max_items`, `unique`
   - Enum `not_in`
+- Complex nested packages
+- Cross-package imports as field types
 
 ## Annotations
 
@@ -133,9 +135,13 @@ High level pseudo-code:
         - Figure out Huma naming & type
         - Convert validation to Huma's JSON-Schema tags
       - Generate `FromProto` and `ToProto` converter methods
-  - Write out `$BASENAME.huma.go`
+  - Write out `$DIRNAMEhuma/$BASENAME.huma.go`
 
 ## Implementation Details
+
+### Two-Pass Processing
+
+Two passes are done on each file. First, we go through all files and build up a registry of message and enum types for lookup later. During that first pass we also process enums so they can be easily used later. Then we do a second pass to process all the messages, convert the field types, handle all the renaming, etc. This is necessary because a message field in one package may use a type (message or enum) defined in another package we may not have processed yet.
 
 ### Comments
 

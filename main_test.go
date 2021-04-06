@@ -11,15 +11,16 @@ import (
 
 	"github.com/istreamlabs/huma"
 	"github.com/istreamlabs/huma/responses"
-	"github.com/istreamlabs/protoc-gen-huma/example"
-	"github.com/istreamlabs/protoc-gen-huma/examplehuma"
+	"github.com/istreamlabs/protoc-gen-huma/example/package1"
+	"github.com/istreamlabs/protoc-gen-huma/example/package1huma"
+	"github.com/istreamlabs/protoc-gen-huma/example/package2"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:generate protoc --proto_path annotation annotation/huma.proto --go_out=./annotation --go_opt=paths=source_relative
 //go:generate go install
-//go:generate sh -c "mkdir -p example examplehuma && DUMP_REQUEST=1 protoc --proto_path=. -I=. --go_out=example --go_opt=paths=source_relative --huma_out=examplehuma example.proto"
+//go:generate sh -c "rm -rf example && mkdir -p example && DUMP_REQUEST=1 protoc --proto_path=./proto -I=. --go_out=example --go_opt=paths=source_relative --huma_out=example proto/package1/* proto/package2/*"
 
 func TestMain(m *testing.M) {
 	// Run the code generator to get proper coverage reporting. We don't care
@@ -33,7 +34,7 @@ func TestMain(m *testing.M) {
 
 func TestExcludedEnum(t *testing.T) {
 	keys := []string{}
-	for k := range examplehuma.GlobalValuesMap {
+	for k := range package1huma.GlobalValuesMap {
 		keys = append(keys, string(k))
 	}
 
@@ -42,7 +43,7 @@ func TestExcludedEnum(t *testing.T) {
 
 func TestHumaRoundtrip(t *testing.T) {
 	// Example protobuf message we will use to test various features.
-	proto := &example.Message{
+	proto := &package1.Message{
 		Hidden:     "hidden",
 		Num32:      int32(2),
 		Num64:      int64(2),
@@ -52,30 +53,33 @@ func TestHumaRoundtrip(t *testing.T) {
 		Double:     float64(6.1),
 		Name:       "foo",
 		Enabled:    true,
-		Sub: &example.Sub{
-			CamelCaseEnum: example.Sub_BAR,
+		Sub: &package1.Sub{
+			CamelCaseEnum: package1.Sub_BAR,
 			SnakeCaseEnum: 5, // Invalid value, will not serialize.
 		},
 		PrimitiveArray: []int32{1, 2, 3},
-		EnumArray: []example.Global{
-			example.Global_ONE,
-			example.Global_TWO, // Note: this is NOT public and should not be included!
+		EnumArray: []package1.Global{
+			package1.Global_ONE,
+			package1.Global_TWO, // Note: this is NOT public and should not be included!
 		},
-		ComplexArray: []*example.Another{
+		ComplexArray: []*package1.Another{
 			{Value: "first"},
 			{Value: "second"},
 		},
 		Kv: map[string]int32{"a": 1, "b": 2},
-		KvComplex: map[string]*example.Another{
+		KvComplex: map[string]*package1.Another{
 			"complex": {Value: "map"},
 		},
-		OnlyOne: &example.Message_Another{
-			Another: &example.Another{
+		OnlyOne: &package1.Message_Another{
+			Another: &package1.Another{
 				Value: "another",
 			},
 		},
 		Ts:   timestamppb.New(time.Date(2020, 01, 01, 12, 0, 0, 0, time.UTC)),
 		Mp2T: true,
+		CrossPackage: &package2.Message{
+			Name: "crosspkg",
+		},
 	}
 
 	// Expected JSON representation of the above. We will use this to both check
@@ -109,7 +113,10 @@ func TestHumaRoundtrip(t *testing.T) {
 			"value": "another"
 		},
 		"ts": "2020-01-01T12:00:00Z",
-		"mp2t": true
+		"mp2t": true,
+		"cross_package": {
+			"name": "crosspkg"
+		}
 	}`
 
 	// Set up a Huma instance & register a route. No middleware so that we
@@ -117,19 +124,19 @@ func TestHumaRoundtrip(t *testing.T) {
 	app := huma.New("Test Router", "1.0.0")
 
 	app.Resource("/").Get("get-message", "docs",
-		responses.OK().Model([]examplehuma.Message{}),
+		responses.OK().Model([]package1huma.Message{}),
 	).Run(func(ctx huma.Context, input struct {
-		Body examplehuma.Message
+		Body package1huma.Message
 	}) {
 		// Generate an external model from an internal proto input.
-		gen := examplehuma.Message{}
+		gen := package1huma.Message{}
 		gen.FromProto(proto)
 
 		// Round trip test taking in JSON, converting, and converting back.
-		rt := examplehuma.Message{}
+		rt := package1huma.Message{}
 		rt.FromProto(input.Body.ToProto(nil))
 
-		ctx.WriteModel(http.StatusOK, []examplehuma.Message{gen, rt})
+		ctx.WriteModel(http.StatusOK, []package1huma.Message{gen, rt})
 	})
 
 	// Make a request against the service.
