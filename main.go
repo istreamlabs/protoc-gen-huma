@@ -101,7 +101,7 @@ func buildEnum(file *descriptor.FileDescriptorProto, prefix string, path []int32
 	prefix = stripPkg(prefix)
 
 	// If nested, prefix will be set with the outer name. We append to it below.
-	p := casing.Join(strings.Split(prefix, " "), "_", casing.Identity)
+	p := casing.Join(strings.Split(prefix, "."), "_", casing.Identity)
 	if p != "" {
 		p += "_"
 	}
