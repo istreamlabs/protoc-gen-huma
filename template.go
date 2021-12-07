@@ -91,7 +91,7 @@ func (m *{{ msg.Name }}) Resolve(ctx huma.Context, r *http.Request) {
 			{%- endfor %}
 			if len(seen) > 1 {
 				ctx.AddError(&huma.ErrorDetail{
-					Message:  "Only one of [{% for field in fields %}'{{ field.JSONName }}'{% if not forloop.last %}, {% endif %}{% endfor %}] allowed in 'Message'",
+					Message:  "Only one of [{% for field in fields %}'{{ field.JSONName }}'{% if not forloop.last %}, {% endif %}{% endfor %}] allowed in '{{ msg.Name }}'",
 					Location: seen[0],
 					Value:    strings.Join(seen, ", "),
 				})
@@ -173,13 +173,30 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 	return m
 }
 
+{% comment %}
+	Sets the proto's one-of field to the one-of struct which contains the
+  one-of value. This should be called anytime a value has been set as it
+	checks if we are in a one-of and does nothing if not.
+{% endcomment %}
+{% macro oneOfSet(proto, field) -%}
+	{% if proto == "oneof" %}
+		proto.{{ field.OneOf }} = oneof
+	{% endif %}
+{%- endmacro %}
+
 {% macro fieldtoproto(proto, field) -%}
 	{% if field.GoType == "*time.Time" -%}
 		if m.{{ field.Name }} != nil && !m.{{ field.Name }}.IsZero() {
 			{{ proto }}.{{ field.ProtoGoName }} = timestamppb.New(*m.{{ field.Name }})
+			{{ oneOfSet(proto, field) }}
 		}
 	{% elif field.IsPrimitive -%}
-		{{ proto }}.{{ field.ProtoGoName }} = m.{{ field.Name }}
+			{{ proto }}.{{ field.ProtoGoName }} = m.{{ field.Name }}
+			{% if proto == "oneof" -%}
+				if !reflect.ValueOf(m.{{ field.Name }}).IsZero() {
+					{{- oneOfSet(proto, field) -}}
+				}
+			{%- endif %}
 	{% elif field.IsRepeated -%}
 		{
 			tmp := {{ field.ProtoGoType }}{}
@@ -196,11 +213,13 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 				{%- endif %}
 			}
 			{{ proto }}.{{ field.ProtoGoName }} = tmp
+			{# one-of can't be repeated, no need for oneOfSet(...) #}
 		}
 	{% else -%}
 		{% if field.Enum -%}
 			if m.{{ field.Name }} != "" {
 				{{ proto }}.{{ field.ProtoGoName }} = {{ field.GoType }}ValuesMap[m.{{ field.Name }}]
+				{{ oneOfSet(proto, field) }}
 			}
 		{% else -%}
 			if m.{{ field.Name }} != nil {
@@ -211,8 +230,10 @@ func (m *{{ msg.Name }}) FromProto(proto *{{ file.PackageName}}.{{ msg.ProtoGoNa
 					for k, v := range m.{{ field.Name }} {
 						{{ proto }}.{{ field.ProtoGoName }}[k] = v.ToProto({{ proto }}.{{ field.ProtoGoName }}[k])
 					}
+					{{ oneOfSet(proto, field) }}
 				{% else -%}
 					{{ proto }}.{{ field.ProtoGoName }} = m.{{ field.Name }}.ToProto({{ proto }}.{{ field.ProtoGoName }})
+					{{ oneOfSet(proto, field) }}
 				{% endif %}
 			}
 		{%- endif %}
@@ -230,7 +251,6 @@ func (m *{{ msg.Name}}) ToProto(proto *{{ file.PackageName }}.{{ msg.ProtoGoName
 			{
 				oneof := &{{ file.PackageName }}.{{ msg.ProtoGoName }}_{{ field.ProtoGoName }}{}
 				{{ fieldtoproto("oneof", field) }}
-				proto.{{ field.OneOf }} = oneof
 			}
 		{% else -%}
 			{{ fieldtoproto("proto", field) }}

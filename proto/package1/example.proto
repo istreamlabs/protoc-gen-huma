@@ -36,6 +36,7 @@ message Message {
     oneof only_one {
         string tag = 16 [(huma.public) = true];
         Another another = 17 [(huma.public) = true];
+        int32 count = 22 [(huma.public) = true];
     }
     google.protobuf.Timestamp ts = 18 [(huma.public) = true];
     bool mp2t = 19 [(huma.public) = true, (huma.name) = "MP2T", (huma.json) = "mp2t"];
