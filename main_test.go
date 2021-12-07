@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -180,4 +181,36 @@ func TestHumaRoundtrip(t *testing.T) {
 	app.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code) // Fails because of one-of rule
 	assert.Contains(t, w.Body.String(), "tag, another")
+}
+
+// Make sure *all* one-of values can be used. This prevents overwrite errors
+// from being introduced where e.g. only the last one is ever properly set.
+func TestOneOf(t *testing.T) {
+	tests := []struct {
+		Name    string
+		Example string
+	}{
+		{"first", `{"tag": "some-tag"}`},
+		{"middle", `{"another": {"value": "foo"}}`},
+		{"last", `{"count": 123}`},
+		{"empty", `{}`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			msg := package1huma.Message{}
+			err := json.Unmarshal([]byte(test.Example), &msg)
+			assert.NoError(t, err)
+
+			proto := msg.ToProto(nil)
+
+			another := package1huma.Message{}
+			another.FromProto(proto)
+
+			d, err := json.Marshal(another)
+			assert.NoError(t, err)
+
+			assert.JSONEq(t, test.Example, string(d))
+		})
+	}
 }
