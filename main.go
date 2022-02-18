@@ -354,7 +354,7 @@ func processFile(tFile *File) {
 					tFile.Imports["net/http"] = true
 					tFile.Imports["reflect"] = true
 					tFile.Imports["strings"] = true
-					tFile.Imports["github.com/istreamlabs/huma"] = true
+					tFile.Imports["github.com/danielgtaylor/huma"] = true
 					tMsg.OneOfs[tField.OneOf] = append(tMsg.OneOfs[tField.OneOf], tField)
 				}
 

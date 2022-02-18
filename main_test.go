@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/istreamlabs/huma"
-	"github.com/istreamlabs/huma/responses"
+	"github.com/danielgtaylor/huma"
+	"github.com/danielgtaylor/huma/responses"
 	"github.com/istreamlabs/protoc-gen-huma/example/package1"
 	"github.com/istreamlabs/protoc-gen-huma/example/package1huma"
 	"github.com/istreamlabs/protoc-gen-huma/example/package2"
