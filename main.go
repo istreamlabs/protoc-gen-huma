@@ -185,6 +185,9 @@ func getType(tFile *File, prefix string, f *descriptorpb.FieldDescriptorProto) (
 			tFile.Imports["google.golang.org/protobuf/types/known/timestamppb"] = true
 
 			return "*time.Time", "", false, nil
+		} else if *f.TypeName == ".google.protobuf.Any" {
+			tFile.Imports["google.golang.org/protobuf/types/known/anypb"] = true
+			return "*anypb.Any", "", false, nil
 		}
 
 		// Special case: map types generate an intermediary message type that
