@@ -47,6 +47,3 @@ $CMD protoc --huma_out=example/go \
   $PROTOC_INCLUDE \
   ./example/proto/package1/*.proto \
   ./example/proto/package2/*.proto
-
-echo "Linting changes"
-# go vet ./...

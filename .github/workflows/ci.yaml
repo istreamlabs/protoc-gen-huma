@@ -10,16 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     name: Build & Test
     steps:
-      - uses: actions/checkout@v5
-      - name: Setup go
+      -
+        uses: actions/checkout@v5
+      -
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Setup protoc
+      -
         uses: arduino/setup-protoc@v1
-      - name: Setup protoc-gen-go
+      -
         run: |
-          go get github.com/golang/protobuf/protoc-gen-go
-      - name: Run tests
+          go vet ./...
+      -
         run: |
           go test ./...
