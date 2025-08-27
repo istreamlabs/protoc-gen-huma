@@ -1,0 +1,2 @@
+example/go linguist-generated=true
+annotation/*.go linguist-generated=true

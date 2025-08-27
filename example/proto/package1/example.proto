@@ -3,12 +3,12 @@ syntax = "proto3";
 package package1;
 
 import "google/protobuf/timestamp.proto";
-import "annotation/huma.proto";
-import "annotation/validate.proto";
+import "huma.proto";
+import "validate/validate.proto";
 
 import "package2/example2.proto";
 
-option go_package = "github.com/istreamlabs/protoc-gen-huma/example/package1;package1";
+option go_package = "github.com/istreamlabs/protoc-gen-huma/example/go/package1;package1";
 
 enum Global {
     NONE = 0;
