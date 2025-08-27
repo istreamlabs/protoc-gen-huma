@@ -2,6 +2,8 @@ module github.com/istreamlabs/protoc-gen-huma
 
 go 1.15
 
+replace github.com/istreamlabs/protoc-gen-huma => ./
+
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1 // indirect
 	github.com/danielgtaylor/casing v0.0.0-20210126043903-4e55e6373ac3

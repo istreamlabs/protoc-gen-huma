@@ -2,7 +2,7 @@
 syntax = "proto2";
 package validate;
 
-option go_package = "github.com/envoyproxy/protoc-gen-validate/validate";
+option go_package = "github.com/envoyproxy/protoc-gen-validate/annotation";
 option java_package = "io.envoyproxy.pgv.validate";
 
 import "google/protobuf/descriptor.proto";

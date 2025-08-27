@@ -1,15 +1,20 @@
 name: CI
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  
 jobs:
   build:
     runs-on: ubuntu-latest
     name: Build & Test
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.15"
+          go-version-file: go.mod
       - name: Setup protoc
         uses: arduino/setup-protoc@v1
       - name: Setup protoc-gen-go
@@ -17,5 +22,4 @@ jobs:
           go get github.com/golang/protobuf/protoc-gen-go
       - name: Run tests
         run: |
-          go generate
           go test ./...

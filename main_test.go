@@ -12,16 +12,12 @@ import (
 
 	"github.com/danielgtaylor/huma"
 	"github.com/danielgtaylor/huma/responses"
-	"github.com/istreamlabs/protoc-gen-huma/example/package1"
-	"github.com/istreamlabs/protoc-gen-huma/example/package1huma"
-	"github.com/istreamlabs/protoc-gen-huma/example/package2"
+	"github.com/istreamlabs/protoc-gen-huma/example/go/package1"
+	"github.com/istreamlabs/protoc-gen-huma/example/go/package1huma"
+	"github.com/istreamlabs/protoc-gen-huma/example/go/package2"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-//go:generate protoc --proto_path annotation annotation/huma.proto --go_out=./annotation --go_opt=paths=source_relative
-//go:generate go install
-//go:generate sh -c "rm -rf example && mkdir -p example && DUMP_REQUEST=1 protoc --proto_path=./proto -I=. --go_out=example --go_opt=paths=source_relative --huma_out=example proto/package1/* proto/package2/*"
 
 func TestMain(m *testing.M) {
 	// Run the code generator to get proper coverage reporting. We don't care

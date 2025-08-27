@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package package2;
 
-import "annotation/huma.proto";
+import "huma.proto";
 
-option go_package = "github.com/istreamlabs/protoc-gen-huma/example/package2;package2";
+option go_package = "github.com/istreamlabs/protoc-gen-huma/example/go/package2;package2";
 
 enum Fruits {
     NONE = 0 [(huma.exclude) = true];
