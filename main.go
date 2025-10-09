@@ -262,6 +262,16 @@ func newField(tFile *File, protoMessage *descriptorpb.DescriptorProto, fieldPath
 		f.IsRepeated = true
 		f.GoType = "[]" + f.GoType
 		f.ProtoGoType = "[]" + f.ProtoGoType
+
+		parts := strings.Split(protoField.GetTypeName(), ".")
+
+		if len(parts) > 1 && parts[1] != tFile.PackageName {
+			// Cross package import for a repeated field. This necessitates an import of the original
+			// non-huma package due to how the template generates the `ToProto` method.
+			if entry, ok := registry[protoField.GetTypeName()]; ok {
+				tFile.Imports[string(entry.file.GoImportPath)] = true
+			}
+		}
 	}
 
 	if protoField.OneofIndex != nil {
